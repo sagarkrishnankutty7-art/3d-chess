@@ -48,20 +48,38 @@ details{width:min(96vw,780px);border:1px solid var(--bd);border-radius:8px;paddi
 summary{cursor:pointer;font-weight:700}
 #pl>div{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--bd)}
 details ul{margin:8px 0 0;padding-left:20px}
+#seatp{display:none;width:min(96vw,780px);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;background:var(--btn);font-size:.95rem;gap:12px 20px;flex-wrap:wrap;align-items:flex-start}
+body.seat #seatp{display:flex}
+#seatp .sp{display:flex;gap:10px;align-items:center;flex:1 1 230px}
+#seatp .th{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--bd);background:#ddd;flex:none}
+#seatp .col{display:flex;flex-direction:column;gap:5px}
+#seatp input[type=text]{font:inherit;font-size:.9rem;padding:4px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--btn);color:var(--fg);width:150px}
+#seatp input[type=file]{font-size:.8rem;max-width:200px}
+#seatp .nt{flex-basis:100%;font-size:.85rem;opacity:.75}
+body.fs #seatp{display:none}
+body.fs.seat.opt #seatp{display:flex;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);z-index:6;background:rgba(0,0,0,.78);color:#fff;max-height:50vh;overflow:auto}
+#bgc{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:none;pointer-events:none}
+body.bgdark{--fg:#e6ecf5;--btn:#1b2538;--bd:#35435c;color-scheme:dark}
+body.bglight{--fg:#1a2230;--btn:#fff;--bd:#aab6c6;color-scheme:light}
 </style>
 </head>
 <body>
+<canvas id="bgc"></canvas>
 <h1>Chess Luxe</h1>
 <div id="st"></div>
 <div id="coach"></div>
 <div id="stage"></div>
 <div class="bar" id="bar1">
 <select id="mode" aria-label="Game mode"><option value="ai">You (White) vs computer</option><option value="two">Two players</option></select>
-<button id="fs">Full screen</button><button id="ffb">Face to face</button><button id="op">Options</button><button id="hn">Hint</button><button id="nw">New game</button><button id="un">Undo</button><button id="fl">Flip board</button>
+<button id="fs">Full screen</button><button id="ffb">Face to face</button><button id="sb">Seated players</button><button id="op">Options</button><button id="hn">Hint</button><button id="nw">New game</button><button id="un">Undo</button><button id="fl">Flip board</button>
 </div>
 <div class="bar" id="bar2"><select id="lvl" aria-label="Computer level"><option value="0">Computer: Beginner</option><option value="1" selected>Computer: Easy</option><option value="2">Computer: Medium</option></select>
 <select id="ps" aria-label="Piece style"></select><select id="bs" aria-label="Board style"></select>
+<select id="bgs" aria-label="Animated background"><option value="none">Background: Plain</option><option value="stars">Background: Starry night</option><option value="aurora">Background: Aurora lights</option><option value="snow">Background: Snowfall</option><option value="rain">Background: Rain</option><option value="fire">Background: Fireflies</option><option value="bubbles">Background: Floating bubbles</option></select>
 <label><input type="checkbox" id="ck1" checked> Show possible moves</label><label><input type="checkbox" id="ck2" checked> Warn about risky squares</label></div>
+<div id="seatp"><div class="sp"><img class="th" id="th1" alt="White player photo"><div class="col"><b>White player (gold)</b><input type="text" id="nm1" placeholder="Name (optional)" maxlength="14" aria-label="White player name"><input type="file" id="ph1" accept="image/*" aria-label="White player photo"></div></div>
+<div class="sp"><img class="th" id="th2" alt="Black player photo"><div class="col"><b>Black player (copper)</b><input type="text" id="nm2" placeholder="Name (optional)" maxlength="14" aria-label="Black player name"><input type="file" id="ph2" accept="image/*" aria-label="Black player photo"></div></div>
+<div class="nt">Add a photo for each player, or leave it and a simple face is used. The two players sit opposite each other and reach out to move the pieces. Use Flip board to see the other player's face.</div></div>
 <details><summary>New to chess? Learn the pieces and rules</summary>
 <p>Goal: trap the opponent's king so it has no escape (checkmate). White (gold) moves first, then you take turns. Moving onto an enemy piece captures it.</p>
 <div id="pl"></div>
@@ -187,7 +205,7 @@ function click(i){if(busy||!legal(s).length||(vsAI()&&s.turn==='b'))return;
  const m=targets.find(m=>m.t===i);if(sel>=0&&m){play(m);return}
  const p=s.b[i];if(p&&isW(p)===(s.turn==='w')){sel=i;targets=legal(s).filter(m=>m.f===i)}else{sel=-1;targets=[]}rebuild()}
 function play(m){hist.push(s);s=apply(s,m);last=m;sel=-1;targets=[];anim={m,t0:performance.now()};rebuild();maybeAI()}
-function maybeAI(){if(vsAI()&&s.turn==='b'&&legal(s).length){busy=true;rebuild();setTimeout(()=>{const m=pickMove(s,+lvl.value);busy=false;if(m){const pp=s.b[m.f];msg='Computer moved its '+NM[pp.toLowerCase()]+' from '+sqn(m.f)+' to '+sqn(m.t)+(s.b[m.t]||m.ep?' and captured a piece.':'.')+' Your turn.';hist.push(s);s=apply(s,m);last=m;anim={m,t0:performance.now()}}rebuild()},350)}}
+function maybeAI(){if(vsAI()&&s.turn==='b'&&legal(s).length){busy=true;rebuild();setTimeout(()=>{const m=pickMove(s,+lvl.value);busy=false;if(m){const pp=s.b[m.f];msg='Computer moved its '+NM[pp.toLowerCase()]+' from '+sqn(m.f)+' to '+sqn(m.t)+(s.b[m.t]||m.ep?' and captured a piece.':'.')+' Your turn.';hist.push(s);s=apply(s,m);last=m;anim={m,t0:performance.now()}}rebuild()},seated?SD+300:350)}}
 function reset(){s=init();hist=[];sel=-1;targets=[];last=null;busy=false;anim=null;az=0;rebuild()}
 document.getElementById('nw').onclick=reset;mode.onchange=reset;
 document.getElementById('fl').onclick=()=>{az+=Math.PI};
@@ -199,11 +217,11 @@ function pick(e){const b=cv.getBoundingClientRect();v2.set((e.clientX-b.left)/b.
 cv.onpointerdown=e=>{dn={x:e.clientX,y:e.clientY,mv:0};cv.setPointerCapture(e.pointerId)};
 cv.onpointermove=e=>{if(!dn)return;const dx=e.clientX-dn.x,dy=e.clientY-dn.y;dn.mv+=Math.abs(dx)+Math.abs(dy);if(dn.mv>6){if(!ff)az-=dx*.008;el=Math.max(.35,Math.min(1.45,el+dy*.006))}dn.x=e.clientX;dn.y=e.clientY};
 cv.onpointerup=e=>{if(dn&&dn.mv<=6)pick(e);dn=null};
-cv.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(8,Math.min(26,dist+e.deltaY*.01))},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(8,Math.min(seated?36:26,dist+e.deltaY*.01))},{passive:false});
 function fit(){const w=host.clientWidth,h=host.clientHeight;R.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();const need=6.2/(Math.tan(.349)*cam.aspect);if(need>dist)dist=Math.min(need,26)}
 addEventListener('resize',fit);fit();
 function loop(now){requestAnimationFrame(loop);
- if(anim){const k=Math.min(1,(now-anim.t0)/260),g=meshAt[anim.m.t];if(g){const[fx,fz]=pos(anim.m.f),[tx,tz]=pos(anim.m.t);g.position.set(fx+(tx-fx)*k,Math.sin(k*Math.PI)*.6,fz+(tz-fz)*k)}if(k>=1)anim=null}
+ if(seated)seatTick(now);else if(anim){const k=Math.min(1,(now-anim.t0)/260),g=meshAt[anim.m.t];if(g){const[fx,fz]=pos(anim.m.f),[tx,tz]=pos(anim.m.t);g.position.set(fx+(tx-fx)*k,Math.sin(k*Math.PI)*.6,fz+(tz-fz)*k)}if(k>=1)anim=null}
  cam.position.set(dist*Math.cos(el)*Math.sin(az),dist*Math.sin(el),dist*Math.cos(el)*Math.cos(az));cam.lookAt(0,0,0);R.render(sc,cam)}
 const NM={p:'pawn',r:'rook',n:'knight',b:'bishop',q:'queen',k:'king'};
 const RL={p:'Pawn: moves forward 1 square (2 from its start row) and captures diagonally forward. At the far end it becomes a queen.',r:'Rook: slides any distance forward, back or sideways.',n:'Knight: jumps in an L shape (2 squares, then 1 sideways) and can leap over other pieces.',b:'Bishop: slides any distance diagonally.',q:'Queen: slides any distance in a straight line or diagonal. The strongest piece.',k:'King: moves 1 square in any direction. Protect it!'};
@@ -211,7 +229,7 @@ const sqn=i=>'abcdefgh'[i&7]+(8-(i>>3));
 let msg='Welcome! You play the gold pieces and move first. Tap a gold piece to see where it can go.';
 function pickMove(s,lv){const ms=legal(s);if(lv===0)return ms[Math.random()*ms.length|0];ms.sort(()=>Math.random()-.5);const mx=s.turn==='w';let best=null,bv=mx?-1e9:1e9;
  for(const m of ms){const v=search(apply(s,m),lv===1?0:2,-1e9,1e9);if(mx?v>bv:v<bv){bv=v;best=m}}return best}
-const _rb=rebuild;rebuild=()=>{_rb();marks.children.forEach(o=>{o.renderOrder=5});let t=msg;if(demoOn)st.textContent='Practice board: no opponent here';else{if(!legal(s).length)t='Game over. Press New game to play again.';else if(inChk(s))t+=' Check! The king is under attack: move it, block the attack, or capture the attacker.'}coach.textContent=t;if(ff)panels()};
+const _rb=rebuild;rebuild=()=>{_rb();marks.children.forEach(o=>{o.renderOrder=5});let t=msg;if(demoOn)st.textContent='Practice board: no opponent here';else{if(!legal(s).length)t='Game over. Press New game to play again.';else if(inChk(s))t+=' Check! The king is under attack: move it, block the attack, or capture the attacker.'}coach.textContent=t;if(nmv('w')||nmv('b')){if(!demoOn)st.textContent=st.textContent.replace('White (gold)',pn('w','White')).replace('Black (copper)',pn('b','Black')).replace('Black wins',(nmv('b')||'Black')+' wins').replace('White wins',(nmv('w')||'White')+' wins')}if(ff)panels()};
 const _click=click;
 click=i=>{if(demoOn){demoClick(i);return}
  const p=s.b[i],s0=s;hint=null;_click(i);
@@ -305,7 +323,7 @@ document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement
 opB.onclick=()=>bd.classList.toggle('opt');
 addEventListener('keydown',e=>{if(e.key==='Escape'&&bd.classList.contains('fs'))setFS(false)});
 function panels(){const ms=legal(s),chk=inChk(s),over=!ms.length;
- [['p1','w','White (gold)'],['p2','b','Black (copper)']].forEach(([id,c,n])=>{const bx=document.getElementById(id),mine=s.turn===c;
+ [['p1','w',pn('w','White (gold)')],['p2','b',pn('b','Black (copper)')]].forEach(([id,c,n])=>{const bx=document.getElementById(id),mine=s.turn===c;
   bx.querySelector('.ft').textContent=over?(chk?(mine?n+': checkmate, you lost':n+': you win!'):'Draw (stalemate)'):mine?n+': your move'+(chk?' (check!)':''):n+': waiting…';
   bx.classList.toggle('on',mine&&!over);bx.querySelector('.fh').disabled=!mine||over})}
 document.querySelectorAll('.fh').forEach(b=>{b.onclick=()=>document.getElementById('hn').click()});
@@ -315,6 +333,120 @@ function setFF(on){if(on===ff)return;ff=on;bd.classList.toggle('ff',on);document
  else{if(ffs){az=ffs.az;el=ffs.el;dist=ffs.dist}setFS(false);try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}}
  sel=-1;targets=[];hint=null;rebuild()}
 document.getElementById('ffb').onclick=()=>setFF(!ff);
+/* ===== Seated players (optional) ===== */
+const V3=THREE.Vector3,SD=2400;let seated=false,seatSaved=null;
+const seatG=new THREE.Group();seatG.visible=false;sc.add(seatG);
+const SMt=(c,r)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+const mWood=SMt(0x4b2f1d,.5),mTable=SMt(0x2f2118,.45),mCush=SMt(0x7a2330,.8),mShoe=SMt(0x111111,.5);
+const mSkin=[SMt(0xf0c7a2,.7),SMt(0xd8a47a,.7)],mShirt=[SMt(0xe9e1cf,.8),SMt(0x2f3542,.8)],mPants=[SMt(0x3c4a68,.85),SMt(0x1b1e26,.85)];
+const mHair=[0x3b2a1c,0x15151a].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.8,side:THREE.DoubleSide}));
+const CYL=new THREE.CylinderGeometry(1,1,1,20),BALL=new THREE.SphereGeometry(1,22,16),BX2=new THREE.BoxGeometry(1,1,1);
+function part(geo,mat,k3,p,par){const o=new THREE.Mesh(geo,mat);o.scale.set(k3[0],k3[1],k3[2]);o.position.set(p[0],p[1],p[2]);o.castShadow=o.receiveShadow=true;par.add(o);return o}
+/* table and floor shadow */
+for(const sx of[-1,1])for(const sz of[-1,1])part(CYL,mTable,[.35,3.03,.35],[sx*5.9,-2.385,sz*4.6],seatG);
+part(BX2,mTable,[13,.36,10.6],[0,-.7,0],seatG);
+{const f=new THREE.Mesh(new THREE.PlaneGeometry(70,70),new THREE.ShadowMaterial({opacity:.3}));f.rotation.x=-Math.PI/2;f.position.y=-3.9;f.receiveShadow=true;seatG.add(f)}
+/* one seated person: chair, body, head with photo face, two arms */
+const AV={};
+function mkAvatar(c){const i=c==='w'?0:1,g=new THREE.Group(),av={c,g,lean:0,arms:[]};
+ g.position.set(0,-2,c==='w'?6.5:-6.5);g.rotation.y=c==='w'?Math.PI:0;seatG.add(g);
+ part(BX2,mWood,[4,.35,3.8],[0,-.175,.2],g);part(BX2,mCush,[3.6,.25,3.4],[0,.12,.2],g);part(BX2,mWood,[4,3.8,.35],[0,1.7,-1.7],g);
+ part(BX2,mPants[i],[3,.8,1.9],[0,.65,-.1],g);
+ for(const sx of[-1,1]){part(BX2,mWood,[.35,.25,1.8],[sx*2.15,1.55,.2],g);part(BX2,mWood,[.3,1.4,.3],[sx*2.15,.85,.95],g);
+  for(const sz of[-1,1])part(CYL,mWood,[.16,1.55,.16],[sx*1.8,-1.125,sz*1.5+.2],g);
+  part(BX2,mPants[i],[1.1,.8,3],[sx*.85,.65,1.5],g);part(CYL,mPants[i],[.45,2.3,.45],[sx*.85,-.5,2.95],g);part(BX2,mShoe,[.95,.4,1.3],[sx*.85,-1.7,3.25],g)}
+ const up=new THREE.Group();up.position.set(0,.9,-.1);g.add(up);av.up=up;
+ part(CYL,mShirt[i],[1.55,3,.9],[0,1.5,0],up);part(CYL,mSkin[i],[.34,.6,.34],[0,3.2,0],up);
+ for(const sx of[-1,1])part(BALL,mShirt[i],[.55,.55,.55],[sx*1.55,2.65,0],up);
+ const hd=new THREE.Group();hd.position.set(0,4.5,.05);up.add(hd);av.hd=hd;
+ const hs=new THREE.Group();hs.scale.set(.95,1.08,1);hd.add(hs);
+ part(BALL,mSkin[i],[1,1,1],[0,0,0],hs);
+ const cap=new THREE.Mesh(new THREE.SphereGeometry(1.07,28,16,0,Math.PI*2,0,1.3),mHair[i]);cap.rotation.x=-.3;cap.position.z=-.08;cap.castShadow=true;hs.add(cap);
+ const bk=new THREE.Mesh(new THREE.SphereGeometry(1.07,28,16,Math.PI/2+1.15,Math.PI*2-2.3,0,2.5),mHair[i]);bk.castShadow=true;hs.add(bk);
+ const face=new THREE.Mesh(new THREE.SphereGeometry(1.09,28,20,Math.PI/2-1,2,.8,1.9),new THREE.MeshStandardMaterial({roughness:.8,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));face.renderOrder=3;hs.add(face);av.face=face;
+ for(const sx of[-1,1])part(BALL,mSkin[i],[.2,.32,.16],[sx*.95,-.05,0],hd);
+ for(const sx of[-1,1])av.arms.push({sx,ua:part(CYL,mShirt[i],[1,1,1],[0,0,0],up),fo:part(CYL,mSkin[i],[1,1,1],[0,0,0],up),el:part(BALL,mShirt[i],[.46,.46,.46],[0,0,0],up),hn:part(BALL,mSkin[i],[.44,.44,.44],[0,0,0],up)});
+ return av}
+AV.w=mkAvatar('w');AV.b=mkAvatar('b');seatG.updateMatrixWorld(true);
+/* arm with simple two-bone reach; arm stretches a little for far squares */
+function bone(o,P,Q,r){const d=Q.clone().sub(P),l=d.length()||.001;o.position.copy(P).addScaledVector(d,.5);o.quaternion.setFromUnitVectors(new V3(0,1,0),d.normalize());o.scale.set(r,l,r)}
+function reach(a,T){const S=new V3(a.sx*1.65,2.6,0),d=T.clone().sub(S),D=Math.max(d.length(),.3),dir=d.clone().normalize();
+ const seg=Math.max(2.4,D*.52),x=D/2,h=Math.sqrt(Math.max(seg*seg-x*x,0));
+ const pole=new V3(a.sx*.8,-1,-.5);pole.addScaledVector(dir,-pole.dot(dir)).normalize();
+ const E=S.clone().addScaledVector(dir,x).addScaledVector(pole,h);
+ bone(a.ua,S,E,.42);bone(a.fo,E,T,.36);a.el.position.copy(E);a.hn.position.copy(T)}
+const ease=u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2,lerpV=(a,b,k)=>a.clone().lerp(b,k),clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
+const restW=(av,a)=>av.g.localToWorld(new V3(a.sx*1.3,1.9,1.1));
+const PH={p:.55,n:.95,r:.85,b:1.05,q:1.1,k:1.15};
+function seatTick(now){const mv={w:null,b:null};
+ if(anim){const m=anim.m,piece=s.b[m.t],g=meshAt[m.t];
+  if(!piece){anim=null}else{
+  if(!anim.c){anim.c=isW(piece)?'w':'b';const av=AV[anim.c],fx=pos(m.f)[0];let best=1e9;anim.ai=0;av.arms.forEach((a,k)=>{const dd=Math.abs(restW(av,a).x-fx);if(dd<best){best=dd;anim.ai=k}})}
+  const u=Math.min(1,(now-anim.t0)/SD),av=AV[anim.c],a=av.arms[anim.ai],RW=restW(av,a),[fx,fz]=pos(m.f),[tx,tz]=pos(m.t),HY=PH[piece.toLowerCase()]+.4,UP=2.5;
+  let H;const P=new V3(fx,0,fz);
+  if(u<.22)H=lerpV(RW,new V3(fx,UP,fz),ease(u/.22));
+  else if(u<.32)H=lerpV(new V3(fx,UP,fz),new V3(fx,HY,fz),ease((u-.22)/.1));
+  else if(u<.72){const k=ease((u-.32)/.4);P.set(fx+(tx-fx)*k,Math.sin(k*Math.PI)*.7,fz+(tz-fz)*k);H=new V3(P.x,P.y+HY,P.z)}
+  else{P.set(tx,0,tz);H=u<.82?lerpV(new V3(tx,HY,tz),new V3(tx,UP,tz),ease((u-.72)/.1)):lerpV(new V3(tx,UP,tz),RW,ease((u-.82)/.18))}
+  if(g)g.position.copy(P);
+  mv[anim.c]={ai:anim.ai,H};
+  if(u>=1)anim=null}}
+ for(const c of['w','b']){const av=AV[c],M=mv[c];
+  const dh=M?Math.hypot(M.H.x-av.g.position.x,M.H.z-av.g.position.z):0;
+  av.lean+=((M?clampN((dh-5.2)*.18,0,.85):0)-av.lean)*.14;
+  av.up.rotation.x=av.lean+(M?.08:0)+Math.sin(now/900+(c==='w'?0:2))*.012;
+  av.up.updateMatrixWorld(true);
+  av.arms.forEach((a,k)=>reach(a,av.up.worldToLocal(((M&&M.ai===k)?M.H:restW(av,a)).clone())));
+  const L=M?av.up.worldToLocal(M.H.clone()):null;
+  av.hd.rotation.y+=((L?clampN(Math.atan2(L.x,Math.max(L.z,1)),-.7,.7):0)-av.hd.rotation.y)*.15;
+  av.hd.rotation.x+=((M?.35:0)-av.hd.rotation.x)*.15}}
+/* faces from photos */
+function drawFace(c,img){const k=document.createElement('canvas');k.width=k.height=256;const x=k.getContext('2d');
+ if(img){const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)*.25,m,m,0,0,256,256)}
+ else{x.fillStyle=c==='w'?'#f0c7a2':'#d8a47a';x.fillRect(0,0,256,256);
+  x.fillStyle='#fff';[84,172].forEach(e=>{x.beginPath();x.ellipse(e,112,19,13,0,0,7);x.fill()});
+  x.fillStyle='#2a1c12';[84,172].forEach(e=>{x.beginPath();x.arc(e,113,8,0,7);x.fill()});
+  x.lineCap='round';x.strokeStyle='#4a3020';x.lineWidth=7;[[62,86,104,80],[152,80,194,86]].forEach(q=>{x.beginPath();x.moveTo(q[0],q[1]);x.lineTo(q[2],q[3]);x.stroke()});
+  x.strokeStyle='rgba(120,70,40,.5)';x.lineWidth=5;x.beginPath();x.moveTo(128,120);x.lineTo(122,160);x.lineTo(134,162);x.stroke();
+  x.strokeStyle='#8a2f2f';x.lineWidth=7;x.beginPath();x.arc(128,168,36,.25,Math.PI-.25);x.stroke()}
+ return k}
+function setFace(c,img){const src=drawFace(c,img),k=document.createElement('canvas');k.width=k.height=256;const x=k.getContext('2d');x.drawImage(src,0,0);
+ x.globalCompositeOperation='destination-in';const g=x.createRadialGradient(128,128,70,128,128,128);g.addColorStop(0,'#000');g.addColorStop(.8,'#000');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,256,256);
+ const m=AV[c].face.material;if(m.map)m.map.dispose();m.map=new THREE.CanvasTexture(k);m.needsUpdate=true;
+ document.getElementById(c==='w'?'th1':'th2').src=src.toDataURL('image/jpeg',.85)}
+setFace('w',null);setFace('b',null);
+[['w','ph1'],['b','ph2']].forEach(([c,id])=>{const inp=document.getElementById(id);inp.onchange=()=>{const f=inp.files[0];if(!f)return;const fr2=new FileReader();fr2.onload=()=>{const im=new Image();im.onload=()=>setFace(c,im);im.src=fr2.result};fr2.readAsDataURL(f)}});
+const nmI={w:document.getElementById('nm1'),b:document.getElementById('nm2')};
+const nmv=c=>nmI[c].value.trim(),pn=(c,d)=>nmv(c)?nmv(c)+(c==='w'?' (gold)':' (copper)'):d;
+nmI.w.oninput=nmI.b.oninput=()=>rebuild();
+/* turn the option on or off */
+const sbB=document.getElementById('sb');
+function setSeated(on){if(on===seated)return;seated=on;bd.classList.toggle('seat',on);sbB.textContent=on?'Hide seated players':'Seated players';seatG.visible=on;fl.visible=!on;
+ const sh=dl.shadow.camera;if(on)Object.assign(sh,{left:-11,right:11,top:11,bottom:-11,far:45});else Object.assign(sh,{left:-7,right:7,top:7,bottom:-7,far:30});sh.updateProjectionMatrix();
+ if(on){seatSaved={az,el,dist};if(!ff){az=.95;el=.72}dist=Math.max(dist,ff?24:27)}
+ else if(seatSaved){if(!ff){az=seatSaved.az;el=seatSaved.el}dist=seatSaved.dist;seatSaved=null}
+ setTimeout(fit,50);rebuild()}
+sbB.onclick=()=>setSeated(!seated);
+const _clickSeat=click;click=i=>{if(seated&&anim)return;_clickSeat(i)};
+
+/* ===== Animated background (optional) ===== */
+const bgc=document.getElementById('bgc'),bgx=bgc.getContext('2d'),bgs=document.getElementById('bgs');let bgT='none',bgP=[],bw=0,bh=0,bgRun=false;
+const BGD={stars:1,aurora:1,snow:1,rain:1,fire:1};
+function bgInit(){const n={stars:140,snow:120,rain:160,fire:45,bubbles:34}[bgT]||0;bgP=[];for(let i=0;i<n;i++)bgP.push({x:Math.random()*bw,y:Math.random()*bh,r:Math.random(),v:Math.random(),p:Math.random()*6.28})}
+function bgSize(){bw=bgc.width=innerWidth;bh=bgc.height=innerHeight;bgInit()}
+function bgBack(a,b){const g=bgx.createLinearGradient(0,0,0,bh);g.addColorStop(0,a);g.addColorStop(1,b);bgx.globalCompositeOperation='source-over';bgx.fillStyle=g;bgx.fillRect(0,0,bw,bh)}
+function bgDraw(t){if(bgT==='none'){bgRun=false;return}requestAnimationFrame(bgDraw);const T=t/1000;
+ if(bgT==='stars'){bgBack('#04060d','#1b2142');for(const p of bgP){bgx.fillStyle='rgba(255,255,255,'+(.4+.6*Math.abs(Math.sin(T*(.5+p.v)+p.p)))+')';bgx.beginPath();bgx.arc(p.x,p.y,.5+p.r*1.6,0,7);bgx.fill()}
+  const k=(T%7)/7;if(k<.12){const u=k/.12,sx=bw*(.2+.5*((Math.floor(T/7)*.37)%1)),x=sx+u*260,y=40+u*150;bgx.strokeStyle='rgba(255,255,255,'+(1-u)+')';bgx.lineWidth=2;bgx.beginPath();bgx.moveTo(x,y);bgx.lineTo(x-70,y-40);bgx.stroke()}}
+ else if(bgT==='aurora'){bgBack('#02060f','#0b1d2e');bgx.globalCompositeOperation='lighter';
+  [['rgba(60,255,160,.25)',0],['rgba(120,90,255,.22)',2],['rgba(40,200,255,.18)',4]].forEach(([c,o])=>{const g=bgx.createLinearGradient(0,bh*.1,0,bh*.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.45,c);g.addColorStop(1,'rgba(0,0,0,0)');bgx.fillStyle=g;bgx.beginPath();bgx.moveTo(0,bh);for(let x=0;x<=bw;x+=20)bgx.lineTo(x,bh*.4+Math.sin(x*.004+T*.4+o)*bh*.12+Math.sin(x*.011+T*.7+o)*bh*.04);bgx.lineTo(bw,bh);bgx.fill()})}
+ else if(bgT==='snow'){bgBack('#0e1d33','#2d4d73');bgx.fillStyle='#fff';for(const p of bgP){p.y+=.4+p.v*1.2;p.x+=Math.sin(T+p.p)*.4;if(p.y>bh+5){p.y=-5;p.x=Math.random()*bw}bgx.globalAlpha=.5+.5*p.r;bgx.beginPath();bgx.arc(p.x,p.y,1+p.r*2.6,0,7);bgx.fill()}bgx.globalAlpha=1}
+ else if(bgT==='rain'){bgBack('#10151c','#27313d');bgx.strokeStyle='rgba(180,210,240,.5)';bgx.lineWidth=1;bgx.beginPath();for(const p of bgP){p.y+=10+p.v*10;p.x-=2;if(p.y>bh){p.y=-20;p.x=Math.random()*bw+40}bgx.moveTo(p.x,p.y);bgx.lineTo(p.x+2,p.y-14-p.r*8)}bgx.stroke()}
+ else if(bgT==='fire'){bgBack('#050d0a','#10261c');for(const p of bgP){p.x+=Math.sin(T*.6+p.p)*.5;p.y+=Math.cos(T*.5+p.p*2)*.4;if(p.x<0)p.x=bw;if(p.x>bw)p.x=0;if(p.y<0)p.y=bh;if(p.y>bh)p.y=0;const a=.35+.65*Math.abs(Math.sin(T*1.2+p.p*3)),g=bgx.createRadialGradient(p.x,p.y,0,p.x,p.y,14);g.addColorStop(0,'rgba(255,240,120,'+a+')');g.addColorStop(1,'rgba(255,240,120,0)');bgx.fillStyle=g;bgx.beginPath();bgx.arc(p.x,p.y,14,0,7);bgx.fill()}}
+ else if(bgT==='bubbles'){bgBack('#e4f6fb','#9fd2e6');for(const p of bgP){p.y-=.3+p.v*.9;p.x+=Math.sin(T+p.p)*.4;const r=8+p.r*30;if(p.y<-r){p.y=bh+r;p.x=Math.random()*bw}bgx.strokeStyle='rgba(255,255,255,.8)';bgx.fillStyle='rgba(255,255,255,.18)';bgx.lineWidth=1.5;bgx.beginPath();bgx.arc(p.x,p.y,r,0,7);bgx.fill();bgx.stroke()}}}
+bgs.onchange=()=>{bgT=bgs.value;bd.classList.toggle('bgdark',!!BGD[bgT]);bd.classList.toggle('bglight',bgT==='bubbles');bgc.style.display=bgT==='none'?'none':'block';if(bgT!=='none'){bgSize();if(!bgRun){bgRun=true;requestAnimationFrame(bgDraw)}}};
+addEventListener('resize',()=>{if(bgT!=='none')bgSize()});
+
 rebuild();requestAnimationFrame(loop);
 </script>
 </body>
