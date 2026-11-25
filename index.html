@@ -107,6 +107,11 @@ body.flat:not(.ff):not(.seat) #b2d{display:grid}body.flat:not(.ff):not(.seat) #s
 body.cm:not(.ff) .ib{display:flex}#bMu{right:66px}#bFs{right:122px}#bFt{right:178px}
 body.cm:not(.ff) #st.win{font-size:1.6rem;background:#f5c542;color:#151515;font-weight:700;padding:8px 22px}
 #zs{width:130px}</style>
+<style>#cmp{display:none;position:fixed;z-index:60;left:50%;top:44%;transform:translate(-50%,-50%);width:min(92vw,400px);background:rgba(10,16,28,.97);color:#fff;border:2px solid #f5c542;border-radius:16px;padding:20px 22px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+#cmp h2{margin:0 0 8px;color:#f5c542;font-size:1.4rem}#cmp p{margin:6px 0 12px}#cmp button{margin:4px;padding:10px 16px;font-size:1rem}#cmp input{font-size:1.6rem;letter-spacing:.3em;text-align:center;width:9em;text-transform:uppercase;padding:6px;border-radius:8px;border:1px solid #4a5a78;background:#1b2538;color:#fff}
+#cmp .code{font-size:2.2rem;letter-spacing:.35em;font-weight:700;background:#1b2538;border-radius:10px;padding:8px 4px;margin:6px 0}#cmp .er{color:#ff8a80;min-height:1.2em}
+#cqb{display:none;position:fixed;left:10px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:30;padding:11px 16px;border-radius:12px;border:1px solid #a33;background:rgba(120,20,20,.9);color:#fff;font-size:1rem;cursor:pointer}
+body.cmpOn #cqb{display:block}.chide{display:none!important}#b2d.rv{transform:translate(-50%,-48%) rotate(180deg)}#b2d.rv .q span{transform:rotate(180deg)}</style>
 </head>
 <body>
 <canvas id="bgc"></canvas>
@@ -781,6 +786,50 @@ const bm=$('bMu');function ui(){bm.textContent=want?'🎵':'🔇';bm.classList.t
 bm.onclick=()=>{want=!want;try{localStorage.setItem('cl_mu',want?'1':'0')}catch(e){}ui();want?play():stop()};ui();
 const first=()=>{removeEventListener('pointerdown',first);if(want)play()};addEventListener('pointerdown',first);
 rebuild();
+})();
+</script>
+<div id="cmp" role="dialog" aria-label="Competition"></div><button id="cqb">Quit competition</button>
+<script>(function(){
+const box=document.getElementById('cmp'),qb=document.getElementById('cqb'),b1=document.getElementById('bar1'),cb=document.createElement('button');cb.id='cmpb';cb.textContent='Competition';b1.appendChild(cb);
+let cmp=null,R=null,lostT=0,endShown=false;const AL='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rn=c=>'cmp-'+c.toLowerCase();
+function view(html,wire){box.innerHTML=html;box.style.display='block';if(wire)wire()}
+const $=q=>box.querySelector(q),close=()=>{box.style.display='none'};
+function hideUi(on){bd.classList.toggle('cmpOn',on);b1.querySelectorAll('button').forEach(b=>{if(/^(Hint|New game|Undo|Face to face|Seated players|Competition)$/.test(b.textContent))b.classList.toggle('chide',on)});[mode,lvl,lvn].forEach(e=>e&&e.classList.toggle('chide',on))}
+function menu(){view('<h2>Competition</h2><p>Play a friend on another device.</p><button id="c1">Create competition</button><button id="c2">Join competition</button><br><button id="cx">Close</button>',()=>{$('#c1').onclick=create;$('#c2').onclick=joinForm;$('#cx').onclick=close})}
+function joinForm(){view('<h2>Join competition</h2><p>Enter the code your friend is showing.</p><input id="ci" maxlength="6" autocomplete="off" autocapitalize="characters"><div class="er" id="ce"></div><button id="cj">Join</button><button id="cbk">Back</button>',()=>{const i=$('#ci');i.focus();$('#cbk').onclick=menu;$('#cj').onclick=()=>join(i.value.trim().toUpperCase());i.onkeydown=e=>{if(e.key==='Enter')$('#cj').click()}})}
+async function getR(){if(R)return R;try{R=await window.claude.use('room')}catch(e){R=null}return R}
+const noRoom='Competition needs the live room, which works when this page is open on claude.ai while signed in.';
+async function create(){const r=await getR();if(!r){view('<h2>Not available</h2><p></p><button id="cbk">Back</button>',()=>{$('p').textContent=noRoom;$('#cbk').onclick=menu});return}
+ view('<h2>Creating…</h2>');let code,room;for(let k=0;k<4;k++){code=Array.from({length:6},()=>AL[Math.random()*AL.length|0]).join('');try{room=await r.join(rn(code))}catch(e){continue}
+  await room.presence({role:'host',ready:false,mv:''});await sleep(900);if(!room.peers().some(p=>!p.isMe&&p.presence.role==='host'))break;await room.leave();room=null}
+ if(!room){view('<h2>Could not create</h2><p>Please try again.</p><button id="cbk">Back</button>',()=>{$('#cbk').onclick=menu});return}
+ start(room,code,'host','w')}
+async function join(code){const r=await getR(),er=$('#ce');if(!r){er.textContent=noRoom;return}if(code.length!==6){er.textContent='The code has 6 letters or numbers.';return}er.textContent='Connecting…';let room;try{room=await r.join(rn(code))}catch(e){er.textContent='Could not connect. Try again.';return}
+ let host=null;for(let i=0;i<12&&!host;i++){host=room.peers().find(p=>!p.isMe&&p.presence.role==='host');if(!host)await sleep(300)}
+ if(!host){await room.leave();er.textContent='Competition not found. Check the code.';return}
+ if(room.peers().some(p=>!p.isMe&&p.presence.role==='guest')){await room.leave();er.textContent='This competition is already full.';return}
+ await room.presence({role:'guest',ready:false,mv:''});start(room,code,'guest','b')}
+function start(room,code,role,col){cmp={room,code,role,col,active:false,mv:'',ready:false,prev:mode.value};endShown=false;lostT=0;cmp.un=room.onPeers(onPeers);lobby();hideUi(true);bd.classList.remove('menu')}
+const opp=()=>cmp&&cmp.room.peers().find(p=>!p.isMe&&(p.presence.role==='host'||p.presence.role==='guest'));
+function lobby(){const o=opp();view('<h2>Competition</h2>'+(cmp.role==='host'?'<p>Share this code with your friend:</p><div class="code"></div>':'<p>Code: <b class="cd"></b></p>')+'<p id="cs"></p><button id="st2">Start</button><button id="qt">Quit</button>',()=>{const c=$('.code')||$('.cd');c.textContent=cmp.code;$('#st2').onclick=()=>{cmp.ready=true;cmp.room.presence({ready:true,mv:''});lobby();check()};$('#qt').onclick=quit;
+  $('#cs').textContent=!o?'Waiting for your friend to join…':!cmp.ready?'Friend joined. Press Start.':!o.presence.ready?'Waiting for your friend to press Start…':'Starting…';$('#st2').disabled=!o||cmp.ready;$('#st2').style.opacity=$('#st2').disabled?.5:1})}
+function check(){const o=opp();if(cmp&&!cmp.active&&cmp.ready&&o&&o.presence.ready)begin()}
+function begin(){close();if(ff)setFF(false);if(seated)setSeated(false);mode.value='two';cmp.active=true;cmp.mv='';endShown=false;reset();if(cmp.col==='b')az=Math.PI;document.getElementById('b2d').classList.toggle('rv',cmp.col==='b');setTimeout(fit,60)}
+function onPeers(){if(!cmp)return;const o=opp();
+ if(!cmp.active){if(!box.querySelector('#cs')&&box.style.display==='block'&&!box.querySelector('#rm')){}else if(box.querySelector('#cs'))lobby();check();return}
+ if(o){lostT=0;if(o.presence.q){over('Your friend quit. You win.',false);return}const om=o.presence.mv||'';
+  if(om.length>cmp.mv.length&&om.startsWith(cmp.mv)){for(let i=cmp.mv.length;i<om.length;i+=2){const f=om.charCodeAt(i)-48,t=om.charCodeAt(i+1)-48,m=legal(s).find(m=>m.f===f&&m.t===t);if(!m)break;hist.push(s);s=apply(s,m);last=m;sel=-1;targets=[];anim={m,t0:performance.now()};cmp.mv+=om.slice(i,i+2)}rebuild()}}
+ else if(!endShown&&!lostT){lostT=setTimeout(()=>{lostT=0;if(cmp&&cmp.active&&!opp())over('Your friend disconnected.',false)},3500)}}
+function over(msg,rematch){if(endShown)return;endShown=true;view('<h2></h2>'+(rematch?'<button id="rm">Rematch</button>':'')+'<button id="ex">Exit</button>',()=>{$('h2').textContent=msg;$('#ex').onclick=quit;if(rematch)$('#rm').onclick=()=>{cmp.active=false;cmp.ready=false;cmp.mv='';cmp.room.presence({ready:false,mv:''});endShown=false;lobby()}})}
+async function quit(){if(!cmp)return;const c=cmp;cmp=null;try{c.un&&c.un();await c.room.presence({q:1});await sleep(200);await c.room.leave()}catch(e){}
+ close();hideUi(false);document.getElementById('b2d').classList.remove('rv');mode.value=c.prev;reset();setTimeout(fit,60)}
+cb.onclick=()=>{bd.classList.remove('menu');menu()};qb.onclick=quit;
+const _click=click;click=i=>{if(cmp&&cmp.active&&s.turn!==cmp.col)return;_click(i)};
+const _play=play;play=m=>{if(cmp&&cmp.active&&s.turn!==cmp.col)return;_play(m);if(cmp&&cmp.active){cmp.mv+=String.fromCharCode(48+m.f,48+m.t);cmp.room.presence({mv:cmp.mv})}};
+const _rb=rebuild;rebuild=()=>{_rb();if(!cmp||!cmp.active)return;const ms=legal(s),chk=inChk(s);let t,res=null;
+ if(!ms.length){if(chk){const win=s.turn!==cmp.col;t=win?'You win':'You lose';res=t+'!'}else{t='Draw';res='Draw'}}else t=s.turn===cmp.col?'Your move'+(chk?' · check':''):'Friend\'s move';
+ st.textContent=t;st.classList.toggle('win',!!res&&t==='You win');if(res&&!endShown)setTimeout(()=>{if(cmp&&cmp.active)over(res,true)},1100)};
 })();
 </script>
 </body>
