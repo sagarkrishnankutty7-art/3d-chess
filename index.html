@@ -816,7 +816,8 @@ function makeRoom(name,asHost){
   return new Promise(function(resolve,reject){
     var subs=[],st={},mine={},conns={},hubConn=null,left=false,settled=false,peer,me;
     var hubId=PREFIX+name;
-    function notify(){subs.slice().forEach(function(f){try{f()}catch(e){}})}
+    var pend=0;
+    function notify(){if(pend)return;pend=1;setTimeout(function(){pend=0;subs.slice().forEach(function(f){try{f()}catch(e){}})},0)}
     function bc(){var m={t:'s',all:st};Object.keys(conns).forEach(function(k){var c=conns[k];if(c.open)try{c.send(m)}catch(e){}})}
     function fail(e){if(settled)return;settled=true;try{peer&&peer.destroy()}catch(x){}reject(e)}
     function done(){if(settled)return;settled=true;resolve(api)}
@@ -907,7 +908,7 @@ async function join(code){const r=await getR(),er=$('#ce');if(!r){er.textContent
  await room.presence({role:'guest',ready:false,mv:''});start(room,code,'guest','b')}
 function start(room,code,role,col){cmp={room,code,role,col,active:false,mv:'',ready:false,prev:mode.value};endShown=false;lostT=0;cmp.un=room.onPeers(onPeers);lobby();hideUi(true);bd.classList.remove('menu')}
 const opp=()=>cmp&&cmp.room.peers().find(p=>!p.isMe&&(p.presence.role==='host'||p.presence.role==='guest'));
-function lobby(){const o=opp();view('<h2>Competition</h2>'+(cmp.role==='host'?'<p>Share this code with your friend:</p><div class="code"></div>':'<p>Code: <b class="cd"></b></p>')+'<p id="cs"></p><button id="st2">Start</button><button id="qt">Quit</button>',()=>{const c=$('.code')||$('.cd');c.textContent=cmp.code;$('#st2').onclick=()=>{cmp.ready=true;cmp.room.presence({ready:true,mv:''});lobby();check()};$('#qt').onclick=quit;
+function lobby(){const o=opp();view('<h2>Competition</h2>'+(cmp.role==='host'?'<p>Share this code with your friend:</p><div class="code"></div>':'<p>Code: <b class="cd"></b></p>')+'<p id="cs"></p><button id="st2">Start</button><button id="qt">Quit</button>',()=>{const c=$('.code')||$('.cd');c.textContent=cmp.code;$('#st2').onclick=()=>{cmp.ready=true;cmp.room.presence({ready:true,mv:''});if(cmp.active)return;lobby();check()};$('#qt').onclick=quit;
   $('#cs').textContent=!o?'Waiting for your friend to join…':!cmp.ready?'Friend joined. Press Start.':!o.presence.ready?'Waiting for your friend to press Start…':'Starting…';$('#st2').disabled=!o||cmp.ready;$('#st2').style.opacity=$('#st2').disabled?.5:1})}
 function check(){const o=opp();if(cmp&&!cmp.active&&cmp.ready&&o&&o.presence.ready)begin()}
 function begin(){close();if(ff)setFF(false);if(seated)setSeated(false);mode.value='two';cmp.active=true;cmp.mv='';endShown=false;reset();if(cmp.col==='b')az=Math.PI;document.getElementById('b2d').classList.toggle('rv',cmp.col==='b');setTimeout(fit,60)}
