@@ -831,7 +831,7 @@ function makeRoom(name,asHost){
       },
       leave:function(){left=true;subs=[];try{peer.destroy()}catch(e){}return Promise.resolve()}
     };
-    setTimeout(function(){fail(new Error(asHost?'timeout':'notfound'))},12000);
+    setTimeout(function(){fail(new Error('neterr'))},asHost?15000:25000);
     if(asHost){
       me='H';peer=new window.Peer(hubId);
       peer.on('open',function(){st[me]={};done()});
@@ -845,7 +845,8 @@ function makeRoom(name,asHost){
           conns[c.peer]=c;st[c.peer]={};bc();notify();
         });
         c.on('data',function(m){
-          if(!m||m.t!=='p'||conns[c.peer]!==c)return;
+          if(!m||m.t!=='p')return;
+          if(conns[c.peer]!==c){var n=0;for(var k in conns)n++;if(n>=2)return;conns[c.peer]=c;st[c.peer]=st[c.peer]||{}}
           st[c.peer]=Object.assign(st[c.peer]||{},clean(m.d));bc();notify();
         });
         c.on('close',drop);c.on('error',drop);
@@ -853,20 +854,28 @@ function makeRoom(name,asHost){
     }else{
       me='C'+Math.random().toString(36).slice(2,10);
       peer=new window.Peer(PREFIX+'c-'+me);
-      peer.on('error',function(e){
-        if(!settled)fail(new Error(e&&e.type==='peer-unavailable'?'notfound':'neterr'));
-        else if(!left)notify();
-      });
-      peer.on('open',function(){
+      var tries=0;
+      function dial(){
+        if(left||settled)return;
+        tries++;
         var c=peer.connect(hubId,{reliable:true});hubConn=c;
+        c.on('open',function(){try{c.send({t:'p',d:{}})}catch(e){}});
         c.on('data',function(m){
           if(!m||m.t!=='s'||typeof m.all!=='object')return;
           st=m.all;if(!st[me])st[me]=Object.assign({},mine);
           if(!settled)done();else notify();
         });
-        c.on('close',function(){hubConn=null;st[me]=st[me]||{};var o={};o[me]=st[me];st=o;notify()});
+        c.on('close',function(){if(hubConn===c){hubConn=null;var o={};o[me]=st[me]||{};st=o;notify()}});
         c.on('error',function(){});
+      }
+      peer.on('error',function(e){
+        var ty=e&&e.type;
+        if(settled){if(!left)notify();return}
+        if(ty==='peer-unavailable'){
+          if(tries<3)setTimeout(dial,1500);else fail(new Error('notfound'));
+        }else fail(new Error('neterr'));
       });
+      peer.on('open',dial);
     }
   });
 }
@@ -885,14 +894,14 @@ function menu(){view('<h2>Competition</h2><p>Play a friend on another device.</p
 function joinForm(){view('<h2>Join competition</h2><p>Enter the code your friend is showing.</p><input id="ci" maxlength="6" autocomplete="off" autocapitalize="characters"><div class="er" id="ce"></div><button id="cj">Join</button><button id="cbk">Back</button>',()=>{const i=$('#ci');i.focus();$('#cbk').onclick=menu;$('#cj').onclick=()=>join(i.value.trim().toUpperCase());i.onkeydown=e=>{if(e.key==='Enter')$('#cj').click()}})}
 async function getR(){if(R)return R;try{R=await window.claude.use('room')}catch(e){R=null}if(!R)R=window.__p2p||null;return R}
 const noRoom='Competition needs an internet connection.';
-const errTxt=e=>e&&e.message==='nolib'?'Could not load the connection service. Check your internet and try again.':'Could not connect. Check your internet and try again.';
+const errTxt=e=>{const m=e&&e.message;return m==='nolib'?'Could not load the connection service. Check your internet and try again.':m==='notfound'?'Competition not found. Check the code, and make sure your friend is still on the code screen.':m==='taken'?'That code is already in use. Try again.':'Could not reach the other device. Check that both are online and try again.'};
 async function create(){const r=await getR();if(!r){view('<h2>Not available</h2><p></p><button id="cbk">Back</button>',()=>{$('p').textContent=noRoom;$('#cbk').onclick=menu});return}
  view('<h2>Creating…</h2>');let code,room,lastE;for(let k=0;k<4;k++){code=Array.from({length:6},()=>AL[Math.random()*AL.length|0]).join('');try{room=await r.join(rn(code),{host:true})}catch(e){lastE=e;if(e&&e.message==='nolib')break;continue}
   await room.presence({role:'host',ready:false,mv:''});await sleep(900);if(!room.peers().some(p=>!p.isMe&&p.presence.role==='host'))break;await room.leave();room=null}
  if(!room){view('<h2>Could not create</h2><p></p><button id="cbk">Back</button>',()=>{$('p').textContent=errTxt(lastE);$('#cbk').onclick=menu});return}
  start(room,code,'host','w')}
-async function join(code){const r=await getR(),er=$('#ce');if(!r){er.textContent=noRoom;return}if(code.length!==6){er.textContent='The code has 6 letters or numbers.';return}er.textContent='Connecting…';let room;try{room=await r.join(rn(code),{host:false})}catch(e){er.textContent=e&&e.message==='notfound'?'Competition not found. Check the code.':errTxt(e);return}
- let host=null;for(let i=0;i<12&&!host;i++){host=room.peers().find(p=>!p.isMe&&p.presence.role==='host');if(!host)await sleep(300)}
+async function join(code){const r=await getR(),er=$('#ce');if(!r){er.textContent=noRoom;return}if(code.length!==6){er.textContent='The code has 6 letters or numbers.';return}er.textContent='Connecting…';let room;try{room=await r.join(rn(code),{host:false})}catch(e){er.textContent=errTxt(e);return}
+ let host=null;for(let i=0;i<20&&!host;i++){host=room.peers().find(p=>!p.isMe&&p.presence.role==='host');if(!host)await sleep(300)}
  if(!host){await room.leave();er.textContent='Competition not found. Check the code.';return}
  if(room.peers().some(p=>!p.isMe&&p.presence.role==='guest')){await room.leave();er.textContent='This competition is already full.';return}
  await room.presence({role:'guest',ready:false,mv:''});start(room,code,'guest','b')}
