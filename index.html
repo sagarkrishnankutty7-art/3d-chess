@@ -154,6 +154,12 @@ body.cm:not(.ff) #menu .qh{display:none}body.cmpOn #qb [data-t="Hint"],body.cmpO
 <div class="tip">Tap a piece, then a mark to move. Drag to rotate the view, scroll to zoom.</div>
 <div id="p1" class="fp"><span class="ft"></span><button class="fh">Hint</button></div><div id="p2" class="fp"><span class="ft"></span><button class="fh">Hint</button></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>(function(){const T=THREE,mul=(C,f)=>class extends C{constructor(...a){f(a);super(...a)}};
+T.SphereGeometry=mul(T.SphereGeometry,a=>{a[1]=Math.min(96,Math.round((a[1]||32)*2));a[2]=Math.min(64,Math.round((a[2]||16)*2))});
+T.CylinderGeometry=mul(T.CylinderGeometry,a=>{a[3]=Math.min(96,Math.round((a[3]||8)*2.5))});
+T.LatheGeometry=mul(T.LatheGeometry,a=>{a[1]=Math.min(128,Math.round((a[1]||12)*3))});
+T.CircleGeometry=mul(T.CircleGeometry,a=>{a[1]=Math.min(64,Math.round((a[1]||8)*2))});
+T.CanvasTexture=mul(T.CanvasTexture,()=>{});const CT=T.CanvasTexture;T.CanvasTexture=class extends CT{constructor(...a){super(...a);this.anisotropy=16}}})();</script>
 <script>
 const G={k:'\u265A\uFE0E',q:'\u265B\uFE0E',r:'\u265C\uFE0E',b:'\u265D\uFE0E',n:'\u265E\uFE0E',p:'\u265F\uFE0E'};
 const isW=p=>p<'a',inb=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
@@ -208,18 +214,19 @@ function aiMove(s){const ms=legal(s).sort(()=>Math.random()-.5),mx=s.turn==='w';
 let s=init(),hist=[],sel=-1,targets=[],last=null,busy=false,anim=null,az=0,el=.95,dist=14;
 const host=document.getElementById('stage'),st=document.getElementById('st'),mode=document.getElementById('mode');
 const vsAI=()=>mode.value==='ai';const lvl=document.getElementById('lvl'),ck1=document.getElementById('ck1'),ck2=document.getElementById('ck2'),coach=document.getElementById('coach');let hint=null,demoOn=false,saved=null,ff=false;
-const R=new THREE.WebGLRenderer({antialias:true,alpha:true});R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.setPixelRatio(Math.min(devicePixelRatio,2));
+const R=new THREE.WebGLRenderer({antialias:true,alpha:true});R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;const PRMAX=Math.min(Math.max(devicePixelRatio,1.5),2.5);R.setPixelRatio(PRMAX);
 host.appendChild(R.domElement);const cv=R.domElement;
 const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,1,.1,100);
 sc.add(new THREE.HemisphereLight(0xffffff,0x556070,.85));
-const dl=new THREE.DirectionalLight(0xfff4e0,.9);dl.position.set(6,12,7);dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);
+const dl=new THREE.DirectionalLight(0xfff4e0,.9);dl.position.set(6,12,7);dl.castShadow=true;dl.shadow.mapSize.set(4096,4096);dl.shadow.bias=-.0003;dl.shadow.normalBias=.025;
 Object.assign(dl.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:1,far:30});dl.shadow.camera.updateProjectionMatrix();sc.add(dl);
 R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.15;
 {const es=new THREE.Scene(),g=new THREE.SphereGeometry(50,32,16),cl=[];for(let i=0;i<g.attributes.position.count;i++){const y=g.attributes.position.getY(i)/50,v=.12+.5*(y*.5+.5);cl.push(v,v,v*1.08)}g.setAttribute('color',new THREE.Float32BufferAttribute(cl,3));es.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({side:THREE.BackSide,vertexColors:true})));
 for(const[x,y,z,q]of[[22,26,18,14],[-26,18,8,10],[0,30,-24,12],[-8,12,28,8]]){const p=new THREE.Mesh(new THREE.PlaneGeometry(q,q),new THREE.MeshBasicMaterial({color:new THREE.Color(1,.97,.9).multiplyScalar(7),side:THREE.DoubleSide}));p.position.set(x,y,z);p.lookAt(0,0,0);es.add(p)}
 sc.environment=new THREE.PMREMGenerator(R).fromScene(es,.03).texture}
+const rim=new THREE.DirectionalLight(0xbdd2ff,.55);rim.position.set(-9,7,-8);sc.add(rim);const fill=new THREE.DirectionalLight(0xfff0dc,.3);fill.position.set(9,5,-4);sc.add(fill);
 const board=new THREE.Group();sc.add(board);
-function pearl(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.fillStyle='#d9d8b0';x.fillRect(0,0,128,128);for(let k=0;k<90;k++){x.fillStyle='hsla('+(50+Math.random()*90)+',40%,'+(68+Math.random()*26)+'%,.6)';x.fillRect(Math.random()*128,Math.random()*128,8+Math.random()*26,4+Math.random()*16)}x.strokeStyle='rgba(70,60,30,.3)';for(let k=0;k<12;k++){x.beginPath();x.moveTo(Math.random()*128,Math.random()*128);x.lineTo(Math.random()*128,Math.random()*128);x.stroke()}return new THREE.CanvasTexture(c)}
+function pearl(){const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.scale(4,4);x.fillStyle='#d9d8b0';x.fillRect(0,0,128,128);for(let k=0;k<90;k++){x.fillStyle='hsla('+(50+Math.random()*90)+',40%,'+(68+Math.random()*26)+'%,.6)';x.fillRect(Math.random()*128,Math.random()*128,8+Math.random()*26,4+Math.random()*16)}x.strokeStyle='rgba(70,60,30,.3)';for(let k=0;k<12;k++){x.beginPath();x.moveTo(Math.random()*128,Math.random()*128);x.lineTo(Math.random()*128,Math.random()*128);x.stroke()}return new THREE.CanvasTexture(c)}
 const mL=new THREE.MeshPhysicalMaterial({map:pearl(),roughness:.3,metalness:.1,clearcoat:1,clearcoatRoughness:.08}),mD=new THREE.MeshPhysicalMaterial({color:0x07090c,roughness:.14,metalness:.15,clearcoat:1,clearcoatRoughness:.05}),mS=new THREE.MeshPhysicalMaterial({color:0x05070a,roughness:.16,metalness:.2,clearcoat:1}),mBr=new THREE.MeshStandardMaterial({color:0xd8c068,metalness:1,roughness:.28});
 const SQG=new THREE.BoxGeometry(1,.2,1);
 for(let i=0;i<64;i++){const r=i>>3,c=i&7,m=new THREE.Mesh(SQG,(r+c)%2?mD:mL);m.position.set(c-3.5,-.1,r-3.5);m.receiveShadow=true;m.userData.sq=i;board.add(m)}
@@ -284,7 +291,7 @@ function fit(){const w=host.clientWidth,h=host.clientHeight;R.setSize(w,h);cam.a
 addEventListener('resize',fit);addEventListener('orientationchange',()=>{setTimeout(fit,150);setTimeout(fit,500)});fit();
 let q0=0,qn=0,ql=0;
 function qos(now){if(document.hidden){q0=0;return}if(!q0){q0=now;qn=0;return}qn++;if(now-q0<2500)return;const fps=qn*1000/(now-q0);q0=now;qn=0;
- if(fps<34&&ql<3){ql++;if(ql===1){R.setPixelRatio(Math.min(devicePixelRatio,1.25));fit()}else if(ql===2){R.setPixelRatio(1);fit();dl.shadow.mapSize.set(1024,1024);if(dl.shadow.map){dl.shadow.map.dispose();dl.shadow.map=null}}else{R.shadowMap.enabled=false;sc.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>{m.needsUpdate=true})})}}}
+ if(fps<20&&ql<3){ql++;if(ql===1){R.setPixelRatio(Math.min(PRMAX,1.5));fit()}else if(ql===2){R.setPixelRatio(1.15);fit();dl.shadow.mapSize.set(1024,1024);if(dl.shadow.map){dl.shadow.map.dispose();dl.shadow.map=null}}else{R.shadowMap.enabled=false;sc.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>{m.needsUpdate=true})})}}}
 function loop(now){requestAnimationFrame(loop);qos(now);
  if(seated)seatTick(now);else if(anim){const k=Math.min(1,(now-anim.t0)/260),g=meshAt[anim.m.t];if(g){const[fx,fz]=pos(anim.m.f),[tx,tz]=pos(anim.m.t);g.position.set(fx+(tx-fx)*k,Math.sin(k*Math.PI)*.6,fz+(tz-fz)*k)}if(k>=1)anim=null}
  cam.position.set(dist*Math.cos(el)*Math.sin(az),dist*Math.sin(el),dist*Math.cos(el)*Math.cos(az));cam.lookAt(0,0,0);R.render(sc,cam)}
@@ -320,7 +327,7 @@ function demoClick(i){const m=targets.find(m=>m.t===i);
  const p=s.b[i];if(p&&isW(p)){sel=i;targets=legal(s).filter(x=>x.f===i&&s.b[x.t]!=='k')}else{sel=-1;targets=[]}rebuild()}
 document.getElementById('bk').onclick=()=>{if(!demoOn)return;({s,hist,last,sel,targets}=saved);demoOn=false;saved=null;anim=null;msg='Back to your game.';rebuild()};
 const pl=document.getElementById('pl');for(const t of['k','q','r','b','n','p']){const d=document.createElement('div');d.innerHTML='<b style="font-size:1.7rem">'+G[t]+'</b><span style="flex:1"><b>'+NM[t][0].toUpperCase()+NM[t].slice(1)+'</b>: '+RL[t].split(': ')[1]+'</span>';const b=document.createElement('button');b.textContent='Show me';b.onclick=()=>demo(t);d.appendChild(b);pl.appendChild(d)}
-function tex(f){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');f(x);return new THREE.CanvasTexture(c)}
+function tex(f){const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.scale(4,4);f(x);return new THREE.CanvasTexture(c)}
 const rnd=Math.random;
 const marble=(bg,vn)=>()=>tex(x=>{x.fillStyle=bg;x.fillRect(0,0,128,128);x.strokeStyle=vn;for(let k=0;k<14;k++){x.lineWidth=.5+rnd()*1.5;x.beginPath();let px=rnd()*128;x.moveTo(px,0);for(let y=0;y<128;y+=16){px+=rnd()*30-15;x.lineTo(px,y+16)}x.stroke()}});
 const wood=(a,b)=>()=>tex(x=>{x.fillStyle=a;x.fillRect(0,0,128,128);x.fillStyle=b;for(let k=0;k<40;k++){x.globalAlpha=.12+rnd()*.2;x.fillRect(0,rnd()*128,128,1+rnd()*3)}x.globalAlpha=1});
